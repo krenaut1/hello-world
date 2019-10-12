@@ -1,3 +1,3 @@
 # hello-world
 my first rest service
-just learning about github here
+This will be enhanced to use oAuth eventually

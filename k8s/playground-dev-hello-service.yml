@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # the service name must match the deployment and ingress names
+  name: hello
+  namespace: playground-dev
+  labels:
+    # this label is required per Windstream standards and must match the service name
+    svc: hello
+spec:
+  ports:
+  # this is the port that the nginx-proxy-sidecar is exposing
+  - port: 443
+    protocol: TCP
+  selector:
+  # this selector uses the svc label to find all of the pods for this service which of course must use the exact same svc label
+    svc: hello

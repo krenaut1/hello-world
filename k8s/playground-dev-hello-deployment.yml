@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+  namespace: playground-dev
+  labels:
+    svc: hello
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      svc: hello
+  template:
+    metadata:
+      labels:
+        svc: hello
+    spec:
+      containers:
+      - name: hello
+        image: krenaut1/gohello:v0.0.6
+        resources:
+          limits:
+            cpu: 100m
+            memory: 32Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        env:
+        - name: PROFILE
+          value: dev
+      - name: nginx-proxy-sidecar
+        # this is the official nginx-proxy-sidecar image from our nexus repository
+        image: nexus.windstream.com:5000/nginx-proxy-sidecar:v1.0.0
+        # the proxy side car is very light weight can easily live in these limits
+        resources:
+          limits:
+            cpu: 100m
+            memory: 16Mi
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        ports:
+        - containerPort: 443
+        # the volumeMounts are needed to load the SSL certficate and the proxy configuration for the NGINX Proxy Sidecar
+        volumeMounts:
+        - name: cert
+          mountPath: /var/run/certificates
+          readOnly: true
+        - name: proxy-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+          readOnly: true
+      # the volumes command mounts the ssl certificate and the proxy config on the mount points for the NGINX Proxy Sidecar
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 256
+          optional: false
+          secretName: playground-dev-default-cert
+      - name: proxy-config
+        configMap:
+          # If you need a custom proxy configuration, this is where you would specify it
+          name: proxy-config-default
+          optional: false

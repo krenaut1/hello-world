@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: hello
+  namespace: playground-dev
+  annotations:
+    # this annotation allows each service to have its own ingress definition
+    # behind the scenes all of the minion ingress definitions are merged into the master ingress
+    nginx.org/mergeable-ingress-type: "minion"
+    # this annotation tells the ingress to use HTTPS when connecting to the service, by default the ingress would use HTTP
+    nginx.org/ssl-services: "hello"
+    # this annotation strips the /<application name>/<service name> prefix from the URL path
+    # in this specific example my hello service responds to the root path of just /
+    # the rewrite value replaces the path specified in spec.rules.http.paths.path
+    nginx.org/rewrites: "serviceName=hello rewrite=/"
+    # this annotation controls whether or not SSO is enabled or not True means perform SSO while False means do not perform SSO
+    # the default is enable-oidc "False"
+    # If your service is called by other services and not via a user behind a browser then you must must not enable oidc
+    # The client service will have to provide an Authorization header with a Bearer token from Ping
+    # The ingress will pass this header to your microservice and it must be validated to ensure the client is authenticated
+    custom.nginx.org/enable-oidc: "True"
+    # these annotations can be used to supply a custom oidc client_id and secret for your minion ingress
+    # the default is to use the oidc client and secret from the master ingress, which for the standard environments is configured to authenticate employees
+    # If you are authenticating non-employees then you must obtain and provide your own client id and client secret here
+   #custom.nginx.org/oidc-client-override: "your-client-id-goes-here"
+   #custom.nginx.org/oidc-client-secret-override: "your-client-secret-goes-here"
+    description: |
+      This is my goLang rest service template application
+      This application can run in just 16Mi of RAM
+  labels:
+    swagger: disabled
+spec:
+  rules:
+    # your Ingress can only support one host name to which your service will respond
+    # If you service must respond to multiple host names then you must configure a separate ingress for each host name.
+    # these host names must exist in the SSL/TLS certificate that the ingress is configured to use otherwise HTTPS will not work properly
+    # initially each environment will only have two hosts, one for inside the corporate network and one for the internet
+    # for this example we will assume that the hello service is not exposed to the internet
+    - host: ms-dev.windstream.com
+      http:
+        paths:
+        # This path is what is exposed outside of the cluster.
+        # It will be replaced by the rewrites annotation
+        # It must be globally unique within the cluster when combined with the host name
+        # Per Windstream standards it is in the following format:  /<application name>/<service name>
+        # any url path specified by the client beyond what is specified here will be appended to the rewrite
+        - path: /playground/hello
+          backend:
+            serviceName: hello
+            servicePort: 443

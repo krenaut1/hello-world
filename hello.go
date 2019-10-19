@@ -77,10 +77,17 @@ func main() {
 func authenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHdr := r.Header.Get("Authorization")
+		if len(authHdr) == 0 {
+			log.Println("Forbidden,no authorization header found!")
+			http.Error(w, "Forbidden, no authorization header found!", http.StatusForbidden)
+			return
+		}
 		if oauth.IsValid(authHdr) {
 			next.ServeHTTP(w, r)
 		} else {
+			log.Println("Forbidden, authentication failed!")
 			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
 		}
 	})
 }

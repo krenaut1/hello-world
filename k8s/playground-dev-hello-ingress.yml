@@ -18,7 +18,7 @@ metadata:
     # If your service is called by other services and not via a user behind a browser then you must must not enable oidc
     # The client service will have to provide an Authorization header with a Bearer token from Ping
     # The ingress will pass this header to your microservice and it must be validated to ensure the client is authenticated
-    custom.nginx.org/enable-oidc: "True"
+    custom.nginx.org/enable-oidc: "False"
     # these annotations can be used to supply a custom oidc client_id and secret for your minion ingress
     # the default is to use the oidc client and secret from the master ingress, which for the standard environments is configured to authenticate employees
     # If you are authenticating non-employees then you must obtain and provide your own client id and client secret here
@@ -44,7 +44,7 @@ spec:
         # It must be globally unique within the cluster when combined with the host name
         # Per Windstream standards it is in the following format:  /<application name>/<service name>
         # any url path specified by the client beyond what is specified here will be appended to the rewrite
-        - path: /playground/hello
+        - path: /playground/hello/
           backend:
             serviceName: hello
             servicePort: 443

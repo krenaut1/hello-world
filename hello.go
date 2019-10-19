@@ -12,7 +12,6 @@ import (
 
 // Config this structure defines the application properties
 type Config struct {
-	Profile          string // should only be defined in environment variable
 	ServerAddr       string
 	ServerPort       int
 	ClientID         string
@@ -39,29 +38,19 @@ var events = allEvents{
 }
 
 var oauth *oauthhelper.Oauthhelper
+var config = Config{}
 
 func main() {
 
-	config := Config{}                // create an empty Config structure to hold my application propertied
-	err := goconfig.GoConfig(&config) // populate my configstructure from ./config directory using PROFILE environment variable
-	if err != nil {
-		log.Fatal(err)
-	}
-	// initialize my oauth helper object
-	oauth = &oauthhelper.Oauthhelper{
-		MyClientID:         config.ClientID,                    // client id
-		MyClientSecret:     config.ClientSecret,                // client secret
-		MyTokenEndPoint:    config.TokenEndPoint,               // token end point
-		MyCertEndPoint:     config.CertEndPoint,                // cert end point
-		MyUserInfoEndPoint: config.UserInfoEndPoint,            // user info end point
-		MyAccessToken:      "",                                 // this must be an empty string
-		MyAccessTokenExp:   0,                                  // this must be zero
-		MyCerts:            make(map[string]oauthhelper.Certs), // this must be make(map[string]oauthhelper.Certs)
-		MyUsers:            make(map[string]oauthhelper.Users), // this must be make(map[string]oauthhelper.Users)
-	}
+	// load app properties from config file based on value of PROFILE env variable
+	loadAppProperites()
 
+	// initialize the Oauth Helper
+	initOauthHelper()
+
+	// map all supported request
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/", homeLink)
+	router.HandleFunc("/", homeLink) // don't do this, always specify method
 	router.HandleFunc("/events", getAllEvents).Methods("GET")
 	router.HandleFunc("/event", createEvent).Methods("POST")
 	router.HandleFunc("/event/{id}", getOneEvent).Methods("GET")
@@ -70,6 +59,7 @@ func main() {
 	router.Use(authenticateUser) // add middleware function to every handler to ensure caller is authenticated with Ping
 	listenAddrPort := fmt.Sprintf("%v:%v", config.ServerAddr, config.ServerPort)
 	fmt.Printf("listening on: %v:%v", config.ServerAddr, config.ServerPort)
+	// start listening for requests
 	log.Fatal(http.ListenAndServe(listenAddrPort, router))
 }
 
@@ -90,4 +80,26 @@ func authenticateUser(next http.Handler) http.Handler {
 			return
 		}
 	})
+}
+
+func loadAppProperites() {
+	err := goconfig.GoConfig(&config) // populate my configstructure from ./config directory using PROFILE environment variable
+	if err != nil {
+		log.Fatalf("Error loading application properties: %v", err.Error())
+	}
+}
+
+func initOauthHelper() {
+	// initialize my oauth helper object
+	oauth = &oauthhelper.Oauthhelper{
+		MyClientID:         config.ClientID,                    // client id
+		MyClientSecret:     config.ClientSecret,                // client secret
+		MyTokenEndPoint:    config.TokenEndPoint,               // token end point
+		MyCertEndPoint:     config.CertEndPoint,                // cert end point
+		MyUserInfoEndPoint: config.UserInfoEndPoint,            // user info end point
+		MyAccessToken:      "",                                 // this must be an empty string
+		MyAccessTokenExp:   0,                                  // this must be zero
+		MyCerts:            make(map[string]oauthhelper.Certs), // this must be make(map[string]oauthhelper.Certs)
+		MyUsers:            make(map[string]oauthhelper.Users), // this must be make(map[string]oauthhelper.Users)
+	}
 }
